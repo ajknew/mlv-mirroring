@@ -1,0 +1,6 @@
+{
+  "name": "MLV Mirroring",
+  "description": "USB OTG Screen Mirroring for Android with Camera PiP, custom layout editor, clean fullscreen, and low-latency H.264 MediaCodec decoder.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

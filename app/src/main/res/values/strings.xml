@@ -1,0 +1,50 @@
+<resources>
+    <string name="app_name">MLV Mirroring</string>
+    <string name="btn_start_mirroring">Start Mirroring</string>
+    <string name="btn_stop_mirroring">Stop Mirroring</string>
+    <string name="btn_fullscreen">Clean Fullscreen</string>
+    <string name="btn_exit_fullscreen">Exit Fullscreen</string>
+    <string name="btn_layout_editor">Layout Editor</string>
+    <string name="btn_camera_settings">Camera Controls</string>
+    <string name="btn_settings">Settings</string>
+    <string name="btn_diagnostics">Diagnostics</string>
+    <string name="btn_reset_layout">Reset Layout</string>
+    <string name="btn_save_layout">Save Custom Layout</string>
+    <string name="btn_grant_usb">Grant USB Permission</string>
+    <string name="btn_grant_camera">Grant Camera Permission</string>
+    
+    <string name="status_disconnected">Disconnected</string>
+    <string name="status_device_detected">Device Detected</string>
+    <string name="status_awaiting_approval">Awaiting Client Approval</string>
+    <string name="status_init_transport">Initializing USB Transport</string>
+    <string name="status_init_streaming">Initializing H.264 Stream</string>
+    <string name="status_connected">Connected</string>
+    <string name="status_streaming_active">Streaming Active</string>
+    <string name="status_streaming_stopped">Streaming Stopped</string>
+    <string name="status_error">Error</string>
+    
+    <string name="client_guide_title">Client Device Setup (Zero App Required)</string>
+    <string name="client_guide_step1">1. Enable Developer Options on Client (tap Build Number 7 times).</string>
+    <string name="client_guide_step2">2. Turn on \"USB Debugging\" in Developer Options.</string>
+    <string name="client_guide_step3">3. Connect USB OTG cable between this Host and Client.</string>
+    <string name="client_guide_step4">4. On Client screen, check \"Always allow\" and tap \"OK\" on the debugging prompt.</string>
+    
+    <string name="preset_mirror_fullscreen">Mirror Fullscreen</string>
+    <string name="preset_fullscreen_pip">Mirror Fullscreen + Camera PiP</string>
+    <string name="preset_split_top_bottom">Mirror Top + Camera Bottom</string>
+    <string name="preset_split_bottom_top">Camera Top + Mirror Bottom</string>
+    <string name="preset_split_70_30">Mirror 70% + Camera 30%</string>
+    <string name="preset_split_30_70">Camera 70% + Mirror 30%</string>
+    <string name="preset_side_by_side">Side by Side</string>
+    <string name="preset_custom">Custom Layout</string>
+    
+    <string name="camera_proportional">Proportional (Fit No Crop)</string>
+    <string name="camera_stretch">Free (Stretch Fill)</string>
+    <string name="camera_front">Front Camera</string>
+    <string name="camera_back">Back Camera</string>
+    <string name="camera_off">Camera Hidden</string>
+    <string name="camera_on">Camera Visible</string>
+    
+    <string name="mirror_fit">FIT (Aspect Ratio Maintained)</string>
+    <string name="mirror_fill">FILL (Center Crop Fill)</string>
+</resources>
