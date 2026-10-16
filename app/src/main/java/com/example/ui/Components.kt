@@ -63,23 +63,34 @@ fun VideoSurface(
     onSurfaceCreated: (Surface) -> Unit,
     onSurfaceDestroyed: () -> Unit
 ) {
-    val context = LocalContext.current
-    val surfaceView = remember { SurfaceView(context) }
-
     AndroidView(
-        factory = {
-            surfaceView.apply {
+        factory = { ctx ->
+            SurfaceView(ctx).apply {
                 holder.addCallback(object : SurfaceHolder.Callback {
                     override fun surfaceCreated(holder: SurfaceHolder) {
-                        onSurfaceCreated(holder.surface)
+                        val s = holder.surface
+                        if (s != null && s.isValid) {
+                            onSurfaceCreated(s)
+                        }
                     }
 
-                    override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {}
+                    override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
+                        val s = holder.surface
+                        if (s != null && s.isValid) {
+                            onSurfaceCreated(s)
+                        }
+                    }
 
                     override fun surfaceDestroyed(holder: SurfaceHolder) {
                         onSurfaceDestroyed()
                     }
                 })
+            }
+        },
+        update = { surfaceView ->
+            val s = surfaceView.holder.surface
+            if (s != null && s.isValid) {
+                onSurfaceCreated(s)
             }
         },
         modifier = modifier.fillMaxSize()
@@ -92,23 +103,34 @@ fun CameraPreviewSurface(
     onSurfaceCreated: (Surface) -> Unit,
     onSurfaceDestroyed: () -> Unit
 ) {
-    val context = LocalContext.current
-    val surfaceView = remember { SurfaceView(context) }
-
     AndroidView(
-        factory = {
-            surfaceView.apply {
+        factory = { ctx ->
+            SurfaceView(ctx).apply {
                 holder.addCallback(object : SurfaceHolder.Callback {
                     override fun surfaceCreated(holder: SurfaceHolder) {
-                        onSurfaceCreated(holder.surface)
+                        val s = holder.surface
+                        if (s != null && s.isValid) {
+                            onSurfaceCreated(s)
+                        }
                     }
 
-                    override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {}
+                    override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
+                        val s = holder.surface
+                        if (s != null && s.isValid) {
+                            onSurfaceCreated(s)
+                        }
+                    }
 
                     override fun surfaceDestroyed(holder: SurfaceHolder) {
                         onSurfaceDestroyed()
                     }
                 })
+            }
+        },
+        update = { surfaceView ->
+            val s = surfaceView.holder.surface
+            if (s != null && s.isValid) {
+                onSurfaceCreated(s)
             }
         },
         modifier = modifier.fillMaxSize()

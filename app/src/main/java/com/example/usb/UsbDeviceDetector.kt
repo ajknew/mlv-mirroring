@@ -12,8 +12,11 @@ import android.hardware.usb.UsbManager
 import android.os.Build
 import android.util.Log
 import com.example.model.ClientDeviceInfo
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 class UsbDeviceDetector(private val context: Context) {
@@ -26,6 +29,9 @@ class UsbDeviceDetector(private val context: Context) {
     private val _selectedDevice = MutableStateFlow<UsbDevice?>(null)
     val selectedDevice: StateFlow<UsbDevice?> = _selectedDevice.asStateFlow()
 
+    private val _permissionResult = MutableSharedFlow<Pair<UsbDevice, Boolean>>(extraBufferCapacity = 1)
+    val permissionResult: SharedFlow<Pair<UsbDevice, Boolean>> = _permissionResult.asSharedFlow()
+
     private val usbReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             when (intent?.action) {
@@ -37,7 +43,11 @@ class UsbDeviceDetector(private val context: Context) {
                         intent.getParcelableExtra(UsbManager.EXTRA_DEVICE)
                     }
                     val granted = intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)
-                    Log.d(TAG, "USB Permission result for ${device?.deviceName}: granted=$granted")
+                    Log.d(TAG, "USB Permission result received for ${device?.deviceName}: granted=$granted")
+                    
+                    if (device != null) {
+                        _permissionResult.tryEmit(Pair(device, granted))
+                    }
                     refreshDevices()
                 }
                 UsbManager.ACTION_USB_DEVICE_ATTACHED -> {
@@ -58,10 +68,19 @@ class UsbDeviceDetector(private val context: Context) {
             addAction(UsbManager.ACTION_USB_DEVICE_ATTACHED)
             addAction(UsbManager.ACTION_USB_DEVICE_DETACHED)
         }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            context.registerReceiver(usbReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
-        } else {
-            context.registerReceiver(usbReceiver, filter)
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                context.registerReceiver(usbReceiver, filter, Context.RECEIVER_EXPORTED)
+            } else {
+                context.registerReceiver(usbReceiver, filter)
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Error registering receiver with RECEIVER_EXPORTED, trying default: ${e.message}")
+            try {
+                context.registerReceiver(usbReceiver, filter)
+            } catch (ex: Exception) {
+                Log.e(TAG, "Failed to register usbReceiver: ${ex.message}")
+            }
         }
         refreshDevices()
     }
@@ -72,6 +91,11 @@ class UsbDeviceDetector(private val context: Context) {
         } catch (e: Exception) {
             Log.w(TAG, "Error unregistering receiver: ${e.message}")
         }
+    }
+
+    fun hasPermission(device: UsbDevice?): Boolean {
+        if (device == null) return false
+        return usbManager.hasPermission(device)
     }
 
     fun refreshDevices() {
@@ -110,6 +134,16 @@ class UsbDeviceDetector(private val context: Context) {
     }
 
     fun requestUsbPermission(device: UsbDevice) {
+        if (usbManager.hasPermission(device)) {
+            Log.d(TAG, "USB Permission already granted for ${device.deviceName}")
+            _permissionResult.tryEmit(Pair(device, true))
+            refreshDevices()
+            return
+        }
+
+        val intent = Intent(ACTION_USB_PERMISSION).apply {
+            setPackage(context.packageName)
+        }
         val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             PendingIntent.FLAG_MUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         } else {
@@ -118,9 +152,10 @@ class UsbDeviceDetector(private val context: Context) {
         val permissionIntent = PendingIntent.getBroadcast(
             context,
             0,
-            Intent(ACTION_USB_PERMISSION),
+            intent,
             flags
         )
+        Log.d(TAG, "Calling UsbManager.requestPermission for ${device.deviceName}")
         usbManager.requestPermission(device, permissionIntent)
     }
 

@@ -2,6 +2,7 @@ package com.example.video
 
 import android.media.MediaCodec
 import android.media.MediaFormat
+import android.os.Build
 import android.util.Log
 import android.view.Surface
 import com.example.model.StreamMetrics
@@ -24,6 +25,15 @@ class MediaCodecDecoder {
     private var isConfigured = false
     private var isRunning = false
 
+    var lastSps: ByteArray? = null
+        private set
+    var lastPps: ByteArray? = null
+        private set
+    var lastWidth: Int = 1080
+        private set
+    var lastHeight: Int = 1920
+        private set
+
     private val _metrics = MutableStateFlow(StreamMetrics())
     val metrics: StateFlow<StreamMetrics> = _metrics.asStateFlow()
 
@@ -35,34 +45,58 @@ class MediaCodecDecoder {
     private var metricsJob: Job? = null
     private val scope = CoroutineScope(Dispatchers.Default)
 
+    @Synchronized
     fun attachSurface(newSurface: Surface) {
         surface = newSurface
-        Log.d(TAG, "Attached Surface to decoder")
+        Log.d(TAG, "Attached Surface to decoder: valid=${newSurface.isValid}")
+
+        val currentCodec = codec
+        if (currentCodec != null && isRunning && Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && newSurface.isValid) {
+            try {
+                currentCodec.setOutputSurface(newSurface)
+                Log.d(TAG, "Successfully transferred codec output to new Surface")
+                return
+            } catch (e: Exception) {
+                Log.w(TAG, "setOutputSurface failed, reinitializing: ${e.message}")
+            }
+        }
+
+        // Reconfigure codec with the new surface if SPS/PPS are available
+        if (newSurface.isValid && lastSps != null && lastPps != null) {
+            initializeDecoder(lastWidth, lastHeight, lastSps, lastPps)
+        }
     }
 
+    @Synchronized
     fun detachSurface() {
         surface = null
-        stopDecoder()
-        Log.d(TAG, "Detached Surface from decoder")
+        Log.d(TAG, "Detached Surface from decoder (codec kept intact for re-attachment)")
     }
 
     @Synchronized
     fun initializeDecoder(width: Int = 1080, height: Int = 1920, sps: ByteArray? = null, pps: ByteArray? = null): Boolean {
+        if (sps != null) lastSps = sps
+        if (pps != null) lastPps = pps
+        lastWidth = width
+        lastHeight = height
+
         return try {
             stopDecoder()
 
             val targetSurface = surface
             if (targetSurface == null || !targetSurface.isValid) {
-                Log.w(TAG, "Cannot initialize decoder without valid Surface")
+                Log.w(TAG, "Waiting for valid Surface to configure MediaCodec (${width}x${height})")
                 return false
             }
 
             val format = MediaFormat.createVideoFormat(MIME_TYPE, width, height).apply {
-                if (sps != null) {
-                    setByteBuffer("csd-0", ByteBuffer.wrap(sps))
+                val effectiveSps = sps ?: lastSps
+                val effectivePps = pps ?: lastPps
+                if (effectiveSps != null) {
+                    setByteBuffer("csd-0", ByteBuffer.wrap(effectiveSps))
                 }
-                if (pps != null) {
-                    setByteBuffer("csd-1", ByteBuffer.wrap(pps))
+                if (effectivePps != null) {
+                    setByteBuffer("csd-1", ByteBuffer.wrap(effectivePps))
                 }
             }
 

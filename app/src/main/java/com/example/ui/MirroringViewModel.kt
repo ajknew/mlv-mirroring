@@ -36,7 +36,7 @@ class MirroringViewModel(application: Application) : AndroidViewModel(applicatio
     val decoder = MediaCodecDecoder()
     val parser = H264AnnexBParser()
     val usbDetector = UsbDeviceDetector(application)
-    val usbAdbManager = UsbAdbManager(application, decoder, parser)
+    val usbAdbManager = UsbAdbManager(application, decoder, parser, usbDetector)
     val cameraHelper = CameraHelper(application)
 
     private val _layoutState = MutableStateFlow(MirroringLayoutState.forPreset(LayoutPreset.FULLSCREEN_PIP))

@@ -97,19 +97,22 @@ fun MainMirroringScreen(viewModel: MirroringViewModel) {
     val isDiagnosticsOpen by viewModel.isDiagnosticsOpen.collectAsState()
     val isClientGuideOpen by viewModel.isClientGuideOpen.collectAsState()
 
-    // Camera permission request
-    val cameraPermissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
-        if (isGranted) {
-            viewModel.cameraHelper.detectAvailableCameras()
-            viewModel.cameraHelper.setCameraEnabled(true)
+    // Camera permission request (guarded for testing environments)
+    val registryOwner = androidx.activity.compose.LocalActivityResultRegistryOwner.current
+    if (registryOwner != null) {
+        val cameraPermissionLauncher = rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.RequestPermission()
+        ) { isGranted ->
+            if (isGranted) {
+                viewModel.cameraHelper.detectAvailableCameras()
+                viewModel.cameraHelper.setCameraEnabled(true)
+            }
         }
-    }
 
-    LaunchedEffect(Unit) {
-        if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-            cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+        LaunchedEffect(Unit) {
+            if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+                cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+            }
         }
     }
 
@@ -273,6 +276,20 @@ fun MainMirroringScreen(viewModel: MirroringViewModel) {
                                                 color = TextSecondary,
                                                 fontSize = 12.sp
                                             )
+
+                                            if (deviceInfo.deviceName != "No Device Connected" && !deviceInfo.usbPermissionGranted) {
+                                                Spacer(modifier = Modifier.height(6.dp))
+                                                Button(
+                                                    onClick = { viewModel.requestUsbPermission() },
+                                                    colors = ButtonDefaults.buttonColors(containerColor = CyanAccent, contentColor = DarkSurface),
+                                                    shape = RoundedCornerShape(10.dp),
+                                                    modifier = Modifier.testTag("btn_grant_usb_permission")
+                                                ) {
+                                                    Icon(Icons.Default.Usb, contentDescription = "USB", modifier = Modifier.size(16.dp))
+                                                    Spacer(modifier = Modifier.width(6.dp))
+                                                    Text("Grant USB Permission on HOST", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                                }
+                                            }
                                         }
                                     }
                                 }
@@ -295,7 +312,15 @@ fun MainMirroringScreen(viewModel: MirroringViewModel) {
 
                     Button(
                         onClick = {
-                            if (isStreaming) viewModel.stopMirroring() else viewModel.startMirroring()
+                            if (isStreaming) {
+                                viewModel.stopMirroring()
+                            } else {
+                                if (deviceInfo.deviceName != "No Device Connected" && !deviceInfo.usbPermissionGranted) {
+                                    viewModel.requestUsbPermission()
+                                } else {
+                                    viewModel.startMirroring()
+                                }
+                            }
                         },
                         modifier = Modifier
                             .weight(1f)
